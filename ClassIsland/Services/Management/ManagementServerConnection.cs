@@ -106,7 +106,7 @@ public class ManagementServerConnection : IManagementServerConnection
     {
         ClientGuid = clientUid;
         Id = settings.ClassIdentity ?? "";
-        Host = settings.ManagementServer;
+        Host = settings.ManagementServer.TrimEnd('/');
         ManagementSettings = settings;
         ManifestUrl = $"{Host}/api/v1/client/{clientUid}/manifest";
         CommandConnectionAliveTimer.Tick += CommandConnectionAliveTimerOnTick;

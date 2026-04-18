@@ -242,7 +242,7 @@ public class ManagementService : IManagementService
             Content = $"确定要加入组织 {mf.OrganizationName} 的管理吗？",
             Buttons =
             {
-                TaskDialogButton.CancelButton,
+                new TaskDialogButton("取消", false),
                 new TaskDialogButton("加入", true)
                 {
                     IsDefault = true
@@ -292,7 +292,7 @@ public class ManagementService : IManagementService
             Content = $"确定要退出组织 {Manifest.OrganizationName} 的管理吗？",
             Buttons =
             {
-                TaskDialogButton.CancelButton,
+                new TaskDialogButton("取消", false),
                 new TaskDialogButton("退出", true)
                 {
                     IsDefault = true

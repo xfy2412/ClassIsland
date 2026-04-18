@@ -52,6 +52,7 @@ namespace ClassIsland;
 
 public partial class App
 {
+    [Obsolete]
     private void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<SettingsService>();

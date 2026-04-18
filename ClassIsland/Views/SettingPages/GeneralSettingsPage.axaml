@@ -1,4 +1,4 @@
-﻿<controls:SettingsPageBase x:Class="ClassIsland.Views.SettingPages.GeneralSettingsPage"
+<controls:SettingsPageBase x:Class="ClassIsland.Views.SettingPages.GeneralSettingsPage"
       xmlns="https://github.com/avaloniaui"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -309,6 +309,22 @@
                 <controls3:SettingsExpander.Footer>
                     <ToggleSwitch IsChecked="{Binding ViewModel.SettingsService.Settings.ReduceProgressAccuracy}"/>
                 </controls3:SettingsExpander.Footer>
+            </controls3:SettingsExpander>
+
+            <!-- 重启恢复 -->
+            <controls3:SettingsExpander IconSource="{ci:FluentIconSource &#xE494;}" 
+                                        Header="重启恢复"
+                                        Description="启用后，在应用重启时将恢复上次打开的窗口状态。">
+                <controls3:SettingsExpander.Footer>
+                    <ToggleSwitch IsChecked="{Binding ViewModel.SettingsService.Settings.EnableRestartRecovery}"/>
+                </controls3:SettingsExpander.Footer>
+                <controls3:SettingsExpanderItem Content="关闭时也保存窗口状态"
+                                                Description="启用后，在关闭应用时也会保存窗口状态，下次启动时恢复。"
+                                                IsEnabled="{Binding ViewModel.SettingsService.Settings.EnableRestartRecovery}">
+                    <controls3:SettingsExpanderItem.Footer>
+                        <ToggleSwitch IsChecked="{Binding ViewModel.SettingsService.Settings.EnableRestartRecoveryOnClose}"/>
+                    </controls3:SettingsExpanderItem.Footer>
+                </controls3:SettingsExpanderItem>
             </controls3:SettingsExpander>
         </StackPanel>
     </ScrollViewer>

@@ -78,6 +78,7 @@ public partial class App : AppBase, IAppHost
     public Mutex? Mutex { get; set; }
     public bool IsMutexCreateNew { get; set; } = false;
     private ILogger<App>? Logger { get; set; }
+    private RestartRecoveryService? _restartRecoveryService;
     //public static IHost? Host;
 
 
@@ -260,14 +261,6 @@ public partial class App : AppBase, IAppHost
             {
                 Uri = Uri.TryCreate(args[0], UriKind.Absolute, out var uri) ? uri.ToString() : $"avares://ClassIsland/Assets/HoYoStickers/{args[0]}.png"
             });
-        SentrySdk.ConfigureScope(s =>
-        {
-            s.SetTag("subChannel", AppSubChannel);
-            s.SetTag("subChannel.os", OperatingSystem);
-            s.SetTag("subChannel.platform", Platform);
-            s.SetTag("subChannel.buildType", BuildType);
-            s.SetTag("subChannel.packagingType", PackagingType);
-        });
         base.Initialize();
     }
 
@@ -841,6 +834,8 @@ public partial class App : AppBase, IAppHost
             {
                 connection.LogAuditEvent(AuditEvents.AppStarted, new Empty());
             }
+            _restartRecoveryService = IAppHost.TryGetService<RestartRecoveryService>();
+            Logger?.LogInformation("RestartRecoveryService 服务引用已保存: {Success}", _restartRecoveryService != null);
             _isStartedCompleted = true;
             AppBase.CurrentLifetime = ClassIsland.Core.Enums.ApplicationLifetime.Running;
             if (ApplicationCommand.ImportComplete)
@@ -1046,6 +1041,11 @@ public partial class App : AppBase, IAppHost
         {
             return;
         }
+        var settingsService = IAppHost.TryGetService<SettingsService>();
+        if ((settingsService?.Settings.EnableRestartRecovery ?? false) && (settingsService?.Settings.EnableRestartRecoveryOnClose ?? false))
+        {
+            SaveRecoveryState();
+        }
         _ = Dispatcher.UIThread.InvokeAsync(() =>
         {
             var partial = CurrentLifetime < Core.Enums.ApplicationLifetime.StartingOnline;
@@ -1110,6 +1110,11 @@ public partial class App : AppBase, IAppHost
     
     public override void Restart(string[] parameters, bool restartToLauncher)
     {
+        var settingsService = IAppHost.TryGetService<SettingsService>();
+        if ((settingsService?.Settings.EnableRestartRecovery ?? false) && !IsCrashed)
+        {
+            SaveRecoveryState();
+        }
         Stop();
         var path = Environment.ProcessPath;
         if (path == null)
@@ -1121,6 +1126,67 @@ public partial class App : AppBase, IAppHost
             startInfo.ArgumentList.Add(i);
         }
         Process.Start(startInfo);
+    }
+
+    private void SaveRecoveryState()
+    {
+        Logger?.LogInformation("========== SaveRecoveryState 开始 ==========");
+        try
+        {
+            var recoveryService = _restartRecoveryService;
+            if (recoveryService == null)
+            {
+                Logger?.LogWarning("RestartRecoveryService 服务引用为空");
+                return;
+            }
+            Logger?.LogInformation("RestartRecoveryService 服务引用已获取");
+
+            var recoveryWindows = new List<RecoveryWindowInfo>();
+
+            Logger?.LogInformation("跳过 MainWindow 导航状态保存");
+
+            var settingsWindow = IAppHost.TryGetService<SettingsWindowNew>();
+            if (settingsWindow != null && settingsWindow.IsVisible)
+            {
+                Logger?.LogInformation("SettingsWindow 已打开，收集设置页面信息");
+                var selectedPageId = settingsWindow.ViewModel.SelectedPageInfo?.Id ?? "";
+                Logger?.LogInformation("当前选中设置页面: {PageId}", selectedPageId);
+                recoveryWindows.Add(new RecoveryWindowInfo
+                {
+                    WindowType = "SettingsWindow",
+                    Uri = selectedPageId
+                });
+            }
+
+            var profileSettingsWindow = IAppHost.TryGetService<ProfileSettingsWindow>();
+            if (profileSettingsWindow != null && profileSettingsWindow.IsVisible)
+            {
+                Logger?.LogInformation("ProfileSettingsWindow 已打开，收集档案编辑信息");
+                var selectedProfileId = profileSettingsWindow.ViewModel.SettingsService.Settings.SelectedProfile ?? "";
+                Logger?.LogInformation("当前选中档案: {ProfileId}", selectedProfileId);
+                recoveryWindows.Add(new RecoveryWindowInfo
+                {
+                    WindowType = "ProfileSettingsWindow",
+                    Uri = selectedProfileId
+                });
+            }
+
+            if (recoveryWindows.Any())
+            {
+                Logger?.LogInformation("准备保存 {Count} 个窗口恢复信息", recoveryWindows.Count);
+                _ = recoveryService.SaveRecoveryListAsync(recoveryWindows);
+                Logger?.LogInformation("已保存重启恢复状态");
+            }
+            else
+            {
+                Logger?.LogInformation("没有需要保存的恢复信息");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "保存重启恢复状态失败");
+        }
+        Logger?.LogInformation("========== SaveRecoveryState 结束 ==========");
     }
 
     private void NativeMenuItemOpenAbout_OnClick(object? sender, EventArgs e)

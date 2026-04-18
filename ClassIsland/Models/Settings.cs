@@ -1863,6 +1863,8 @@ public class Settings : ObservableRecipient, ILessonControlSettings, INotificati
     private bool _isScreenRecordingModeEnabled = false;
     private bool _hasEditModeTutorialShown = false;
     private int _classPlanEditModeIndex = 1;
+    private bool _enableRestartRecovery = false;
+    private bool _enableRestartRecoveryOnClose = false;
     private bool _isRefreshingToastEnabled = true;
     private int _refreshingToastThresholdDays = 20;
     private bool _showRefreshingToastOnNextStart = false;
@@ -1874,6 +1876,17 @@ public class Settings : ObservableRecipient, ILessonControlSettings, INotificati
     private int _maxRefreshingToastCounts = 5;
     private RefreshingScopes _refreshingScopes = new();
     private bool _isThemeSeparateInfoVisible = true;
+
+    public bool IsThemeSeparateInfoVisible
+    {
+        get => _isThemeSeparateInfoVisible;
+        set
+        {
+            if (value == _isThemeSeparateInfoVisible) return;
+            _isThemeSeparateInfoVisible = value;
+            OnPropertyChanged();
+        }
+    }
 
     public bool IsIgnoreWorkAreaEnabled
     {
@@ -2390,18 +2403,6 @@ public class Settings : ObservableRecipient, ILessonControlSettings, INotificati
         }
     }
 
-
-    public bool IsThemeSeparateInfoVisible
-    {
-        get => _isThemeSeparateInfoVisible;
-        set
-        {
-            if (value == _isThemeSeparateInfoVisible) return;
-            _isThemeSeparateInfoVisible = value;
-            OnPropertyChanged();
-        }
-    }
-
     public bool IsDebugEnabled
     {
         get => _isDebugEnabled;
@@ -2640,6 +2641,28 @@ public class Settings : ObservableRecipient, ILessonControlSettings, INotificati
         {
             if (value == _classPlanEditModeIndex) return;
             _classPlanEditModeIndex = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool EnableRestartRecovery
+    {
+        get => _enableRestartRecovery;
+        set
+        {
+            if (value == _enableRestartRecovery) return;
+            _enableRestartRecovery = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool EnableRestartRecoveryOnClose
+    {
+        get => _enableRestartRecoveryOnClose;
+        set
+        {
+            if (value == _enableRestartRecoveryOnClose) return;
+            _enableRestartRecoveryOnClose = value;
             OnPropertyChanged();
         }
     }

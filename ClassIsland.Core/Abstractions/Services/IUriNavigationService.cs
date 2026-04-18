@@ -1,4 +1,4 @@
-﻿using ClassIsland.Core.Models.UriNavigation;
+using ClassIsland.Core.Models.UriNavigation;
 using ClassIsland.Shared.IPC.Abstractions.Services;
 
 namespace ClassIsland.Core.Abstractions.Services;
@@ -22,7 +22,6 @@ public interface IUriNavigationService : IPublicUriNavigationService
     /// ClassIsland 插件导航主机名
     /// </summary>
     public static string UriDomainPlugins { get; } = "plugins";
-
 
     internal void HandleNavigation(string domain, string path, Action<UriNavigationEventArgs> onNavigated);
 

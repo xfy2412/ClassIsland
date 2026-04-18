@@ -47,7 +47,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
-using Sentry;
 
 namespace ClassIsland;
 
@@ -78,6 +77,8 @@ public partial class App
         services.AddSingleton<ILessonsService, LessonsService>();
         services.AddSingleton<IUriNavigationService, UriNavigationService>();
         services.AddHostedService<MemoryWatchDogService>();
+        services.AddSingleton<RestartRecoveryService>();
+        services.AddHostedService(provider => provider.GetRequiredService<RestartRecoveryService>());
         services.AddSingleton<IPluginService, PluginService>();
         services.AddSingleton<IPluginMarketService, PluginMarketService>();
         services.AddSingleton<IRulesetService, RulesetService>();
@@ -214,8 +215,6 @@ public partial class App
             {
                 o.InitializeSdk = false;
                 o.MinimumBreadcrumbLevel = LogLevel.Information;
-                o.EnableLogs = true;
-                o.SetBeforeSendLog(log => log.Level < SentryLogLevel.Info ? null : log);
             });
             var debug = false;
 #if DEBUG

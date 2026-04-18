@@ -1,4 +1,4 @@
-﻿using ClassIsland.Shared.Models.Management;
+using ClassIsland.Shared.Models.Management;
 
 namespace ClassIsland.Shared.Abstraction.Services;
 

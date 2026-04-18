@@ -125,7 +125,7 @@ public class ConfigureFileHelper
     /// <param name="o">要写入到配置的对象</param>
     public static void SaveConfig<T>(string path, T o)
     {
-        SaveConfig(path, o, false);
+        SaveConfig(path, o, false, null);
     }
 
     /// <summary>
@@ -137,7 +137,30 @@ public class ConfigureFileHelper
     /// <param name="writeIndented">是否在保存时格式化 JSON</param>
     public static void SaveConfig<T>(string path, T o, bool writeIndented)
     {
-        Logger?.LogInformation("写入 JSON 文件：{}", path);
+        SaveConfig(path, o, writeIndented, null);
+    }
+
+    /// <summary>
+    /// 保存配置文件，并自动创建备份
+    /// </summary>
+    /// <typeparam name="T">配置文件类型</typeparam>
+    /// <param name="path">配置文件路径</param>
+    /// <param name="o">要写入到配置的对象</param>
+    /// <param name="writeIndented">是否在保存时格式化 JSON</param>
+    /// <param name="callerInfo">调用者信息，用于追踪配置修改来源</param>
+    public static void SaveConfig<T>(string path, T o, bool writeIndented, string? callerInfo)
+    {
+        var stackTrace = new System.Diagnostics.StackTrace();
+        var callerMethod = stackTrace.GetFrame(1)?.GetMethod();
+        var callerType = callerMethod?.DeclaringType?.Name ?? "Unknown";
+        var callerMethodName = callerMethod?.Name ?? "Unknown";
+        
+        if (string.IsNullOrEmpty(callerInfo))
+        {
+            callerInfo = $"{callerType}.{callerMethodName}";
+        }
+        
+        Logger?.LogInformation("写入 JSON 文件：{} (来源：{})", path, callerInfo);
         var options = writeIndented ? WriteIndentedSerializerOptions.Value : SerializerOptions;
         // 在保存时不对备份文件进行操作，以防止在保存时发生意外断电时，备份文件也受到损坏。
         WriteAllTextSafe(path, JsonSerializer.Serialize<T>(o, options));

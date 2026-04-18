@@ -60,7 +60,8 @@ public interface IManagementService
     /// <summary>
     /// 退出集控服务器。
     /// </summary>
-    Task ExitManagementAsync();
+    /// <param name="fromRemoved">是否是因为被服务器移除而退出</param>
+    Task ExitManagementAsync(bool fromRemoved = false);
 
     /// <summary>
     /// 根据授权等级进行授权。

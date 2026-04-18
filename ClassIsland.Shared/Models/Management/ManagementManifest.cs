@@ -1,4 +1,4 @@
-﻿using ClassIsland.Shared.Enums;
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿using ClassIsland.Shared.Enums;
 
 namespace ClassIsland.Shared.Models.Management;
 
@@ -56,4 +56,14 @@ public class ManagementManifest
     /// 集控信息的核心版本
     /// </summary>
     public Version CoreVersion { get; set; } = new Version(0, 0, 0, 0);
+
+    /// <summary>
+    /// 客户端是否已被移除集控
+    /// </summary>
+    public bool IsRemoved { get; set; } = false;
+
+    /// <summary>
+    /// 移除时间（如果已移除）
+    /// </summary>
+    public DateTime? RemovedAt { get; set; }
 }

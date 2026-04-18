@@ -176,12 +176,24 @@ public class ManagementService : IManagementService
             CredentialConfig = LoadConfig<ManagementCredentialConfig>(ManagementCredentialsPath);
             Versions = LoadConfig<ManagementVersions>(ManagementVersionsPath);
             Manifest = await Connection.GetManifest();
+            if (Manifest.IsRemoved)
+            {
+                await ExitManagementAsync(true);
+                return false;
+            }
             if (Manifest.CoreVersion.Major != IAppHost.CoreVersion.Major)
             {
                 await CommonTaskDialogs.ShowDialog("集控核心版本不兼容",
                     $"您正在核心版本主版本号（{IAppHost.CoreVersion}）与集控数据核心版本主版本号（{Manifest.CoreVersion}）不同的 ClassIsland 加入集控，这可能会导致您的数据损坏。请运行兼容贵组织集控服务的 ClassIsland 版本，或者联系您的管理员了解详细信息。");
                 return false;
             }
+            
+            Logger.LogInformation("集控清单验证通过，启动命令流监听");
+            if (Connection is ManagementServerConnection managementServerConnection)
+            {
+                managementServerConnection.StartListeningCommands();
+            }
+            
             SaveConfig(ManagementManifestPath, Manifest);
             // 拉取策略
             if (Manifest.PolicySource.IsNewerAndNotNull(Versions.PolicyVersion))
@@ -273,27 +285,33 @@ public class ManagementService : IManagementService
         AppBase.Current.Restart();
     }
 
-    public async Task ExitManagementAsync()
+    public async Task ExitManagementAsync(bool fromRemoved = false)
     {
         if (!IsManagementEnabled)
             throw new Exception("无法在没有加入集控的情况下退出集控。");
-        var authResult = await AuthorizeByLevel(CredentialConfig.ExitManagementAuthorizeLevel);
-        if (!authResult)
+        
+        if (!fromRemoved)
         {
-            throw new Exception("认证失败。");
+            var authResult = await AuthorizeByLevel(CredentialConfig.ExitManagementAuthorizeLevel);
+            if (!authResult)
+            {
+                throw new Exception("认证失败。");
+            }
+            if (!Policy.AllowExitManagement)
+                throw new Exception("您的组织不允许您退出集控。");
         }
-        if (!Policy.AllowExitManagement)
-            throw new Exception("您的组织不允许您退出集控。");
         
         var dialog = new TaskDialog
         {
             Title = "ClassIsland",
-            SubHeader = "退出集控",
-            Content = $"确定要退出组织 {Manifest.OrganizationName} 的管理吗？",
+            SubHeader = fromRemoved ? "已被移出集控" : "退出集控",
+            Content = fromRemoved 
+                ? "您已被所在组织的集控服务移除。应用将退出集控模式并重启。"
+                : $"确定要退出组织 {Manifest.OrganizationName} 的管理吗？",
             Buttons =
             {
                 new TaskDialogButton("取消", false),
-                new TaskDialogButton("退出", true)
+                new TaskDialogButton(fromRemoved ? "确定" : "退出", true)
                 {
                     IsDefault = true
                 }
@@ -304,10 +322,38 @@ public class ManagementService : IManagementService
         var result = await dialog.ShowAsync();
         if (result?.Equals(true) != true)
             return;
+        
+        Logger.LogInformation("退出集控前保存应用设置");
+        
+        var settingsService = IAppHost.GetService<SettingsService>();
+        if (settingsService != null)
+        {
+            var localSettingsPath = Path.Combine(CommonDirectories.AppRootFolderPath, "Settings.json");
+            if (File.Exists(localSettingsPath))
+            {
+                try
+                {
+                    var localSettings = LoadConfig<Models.Settings>(localSettingsPath);
+                    if (localSettings != null)
+                    {
+                        settingsService.Settings = localSettings;
+                        Logger.LogInformation("已从本地文件恢复设置");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "从本地文件恢复设置失败");
+                }
+            }
+            settingsService.SaveSettings("退出集控前保存");
+        }
+        
         Settings.IsManagementEnabled = false;
         SaveConfig(ManagementSettingsPath, Settings);
 
-        await CommonTaskDialogs.ShowDialog("已退出集控", $"已退出组织 {Manifest.OrganizationName} 的管理。应用将重启以应用更改。");
+        await CommonTaskDialogs.ShowDialog(fromRemoved ? "已退出集控" : "已退出集控", 
+            fromRemoved ? "您已被所在组织的集控服务移除。应用将重启以应用更改。" 
+                        : $"已退出组织 {Manifest.OrganizationName} 的管理。应用将重启以应用更改。");
 
         AppBase.Current.Restart();
     }

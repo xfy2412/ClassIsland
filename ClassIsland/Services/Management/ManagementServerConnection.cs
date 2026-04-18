@@ -103,25 +103,37 @@ public class ManagementServerConnection : IManagementServerConnection
 
     
     public ManagementServerConnection(ManagementSettings settings, Guid clientUid, bool lightConnect)
-    {
-        ClientGuid = clientUid;
-        Id = settings.ClassIdentity ?? "";
-        Host = settings.ManagementServer.TrimEnd('/');
-        ManagementSettings = settings;
-        ManifestUrl = $"{Host}/api/v1/client/{clientUid}/manifest";
-        CommandConnectionAliveTimer.Tick += CommandConnectionAliveTimerOnTick;
-        
-        Logger.LogInformation("初始化管理服务器连接。");
-        if (lightConnect)
         {
-            Channel = GrpcChannel.ForAddress(ManagementSettings.ManagementServerGrpc);
-            return;
+            ClientGuid = clientUid;
+            Id = settings.ClassIdentity ?? "";
+            Host = settings.ManagementServer.TrimEnd('/');
+            ManagementSettings = settings;
+            ManifestUrl = $"{Host}/api/v1/client/{clientUid}/manifest";
+            CommandConnectionAliveTimer.Tick += CommandConnectionAliveTimerOnTick;
+            
+            Logger.LogInformation("初始化管理服务器连接。");
+            if (lightConnect)
+            {
+                Channel = GrpcChannel.ForAddress(ManagementSettings.ManagementServerGrpc);
+                return;
+            }
+            AppBase.Current.AppStarted += (sender, args) => InstallAuditHooks();
+            // 接受命令
+            CommandReceived += OnCommandReceived;
         }
-        AppBase.Current.AppStarted += (sender, args) => InstallAuditHooks();
-        // 接受命令
-        CommandReceived += OnCommandReceived;
-        Task.Run(ListenCommands);
-    }
+
+        public void StartListeningCommands()
+        {
+            if (_isListeningCommands)
+            {
+                Logger.LogWarning("命令流监听已启动，无需重复启动");
+                return;
+            }
+            _isListeningCommands = true;
+            Task.Run(ListenCommands);
+        }
+
+        private bool _isListeningCommands = false;
 
     private void OnCommandReceived(object? sender, ClientCommandEventArgs e)
     {
@@ -346,6 +358,11 @@ public class ManagementServerConnection : IManagementServerConnection
         {
             try
             {
+                if (Channel == null)
+                {
+                    Logger.LogWarning("Channel 为空，跳过审计日志上传: {}", eventType);
+                    return;
+                }
                 new Audit.AuditClient(Channel).LogEvent(new AuditScReq()
                 {
                     Event = eventType,

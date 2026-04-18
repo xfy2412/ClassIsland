@@ -142,7 +142,7 @@
                 <!-- 标记换课课程 -->
                 <controls:SettingsExpander IconSource="{ci:FluentIconSource &#xE15F;}"
                                            Header="标记换课课程"
-                                           Description="将临时层中的换课课程以高亮色标记，仅支持使用“换课”修改的课程。">
+                                           Description="将临时层中的换课课程以灰色衬底标记，仅支持使用“换课”修改的课程。">
                     <controls:SettingsExpander.Footer>
                         <ToggleSwitch IsChecked="{Binding Settings.HighlightChangedClass, Mode=TwoWay}"/>
                     </controls:SettingsExpander.Footer>

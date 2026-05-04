@@ -20,8 +20,11 @@ using HotAvalonia;
 using Sentry;
 using System.Diagnostics;
 using ClassIsland.Core.Abstractions.Services;
+using ClassIsland.Core.Models.Tutorial;
 using ClassIsland.Core.Services;
 using ClassIsland.Shared.JsonConverters;
+using ClassIsland.Shared.Models.Profile;
+using MoonSharp.Interpreter;
 
 namespace ClassIsland;
 
@@ -121,6 +124,10 @@ public static class Program
             // ignore
         }
 
+        UserData.RegisterAssembly(typeof(Program).Assembly);
+        UserData.RegisterAssembly(typeof(Tutorial).Assembly);
+        UserData.RegisterAssembly(typeof(Profile).Assembly);
+        
         return () => new App()
         {
             Mutex = mutex,
